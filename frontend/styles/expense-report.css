@@ -1,0 +1,20 @@
+.table-style thead tr * {
+    text-align: center;
+    font-size: large;
+    background-color: rgb(175, 170, 170);
+}
+
+.table-style tbody tr * {
+    text-align: center;
+   
+}
+
+.table-style tfoot tr * {
+    text-align: center;
+    font-weight: bold;
+    background-color: rgb(175, 170, 170);
+}
+
+.options-month {
+    width: auto;
+}
