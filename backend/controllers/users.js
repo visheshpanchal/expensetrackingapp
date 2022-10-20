@@ -33,14 +33,10 @@ exports.singUpUser = (req, res, next) => {
           email: email,
           password: result,
         });
-        res
-          .status(201)
-          .json({ status: "success", message: { id: _Object.id } });
+        res.status(201).json({ status: "success", message: { id: _Object.id } });
       } catch (err) {
         if (err.errors[0].message) {
-          res
-            .status(400)
-            .json({ status: "error", message: `${err.errors[0].message}` });
+          res.status(400).json({ status: "error", message: `${err.errors[0].message}` });
         } else {
           res.status(400).json({ status: "error", message: `${err}` });
         }
@@ -72,10 +68,7 @@ exports.loginUser = async (req, res, next) => {
           }
           if (result) {
             // JWT WebToken Adding
-            let jwtString = jwt.sign(
-              { userId: _Object.id, name: _Object.name },
-              SECRET_KEY
-            );
+            let jwtString = jwt.sign({ userId: _Object.id, name: _Object.name }, SECRET_KEY);
 
             res.set({ "Access-Control-Expose-Headers": "token" });
             res.set("token", jwtString);
@@ -138,16 +131,10 @@ exports.verifyTransaction = async (req, res, next) => {
   if (body) {
     let decryptedToken = jwt.decode(JSON.parse(token), SECRET_KEY);
     let id = body.razorpay_order_id + "|" + body.razorpay_payment_id;
-    let expectedSignature = crypto
-      .createHmac("sha256", R_SECRET)
-      .update(id.toString())
-      .digest("hex");
+    let expectedSignature = crypto.createHmac("sha256", R_SECRET).update(id.toString()).digest("hex");
 
     if (expectedSignature === body.razorpay_signature) {
-      let order = await Order.update(
-        { paymentId: body.razorpay_payment_id },
-        { where: { userId: decryptedToken.userId } }
-      );
+      let order = await Order.update({ paymentId: body.razorpay_payment_id }, { where: { userId: decryptedToken.userId } });
 
       res.json({ status: "success" });
     } else {

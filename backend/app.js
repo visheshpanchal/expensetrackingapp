@@ -1,11 +1,15 @@
+const dotenv = require("dotenv");
+
+// DOTENV
+const result = dotenv.config();
+if (result.error) {
+  throw result.error;
+}
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const sequelize = require("./utils/database");
 const cors = require("cors");
-const dotenv = require("dotenv");
-
-// DOTENV
-dotenv.config();
 
 const app = express();
 
@@ -14,11 +18,7 @@ app.use(express.json());
 
 // Registering Routers
 
-const routes = [
-  require("./routes/user"),
-  require("./routes/expenseRoute"),
-  require("./routes/utils"),
-];
+const routes = [require("./routes/user"), require("./routes/expenseRoute"), require("./routes/utils")];
 
 for (const route of routes) {
   app.use(route);

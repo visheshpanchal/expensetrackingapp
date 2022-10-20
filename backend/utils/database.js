@@ -1,17 +1,12 @@
 const Sequelize = require("sequelize");
 
-const sequelize = new Sequelize("expense_tracking", "root", "1234567890", {
+const sequelize = new Sequelize(process.env.DATABASE_NAME, process.env.UNAME, process.env.PASSWORD, {
   dialect: "mysql",
-  host: "localhost",
+  host: process.env.HOST,
 });
 
 // Add All Database here
-const dbs = [
-  require("../models/userModel"),
-  require("../models/expenseModel"),
-  require("../models/categoryModel"),
-  require("../models/premiumUserDetailsModel"),
-];
+const dbs = [require("../models/userModel"), require("../models/expenseModel"), require("../models/categoryModel"), require("../models/premiumUserDetailsModel")];
 
 for (const db of dbs) {
   db(sequelize);
@@ -21,7 +16,6 @@ const User = sequelize.models.user;
 const Expense = sequelize.models.expense;
 const Category = sequelize.models.category;
 const Order = sequelize.models.order;
-console.log(Order, "---------------");
 
 // User to Expense (One to Many Relation Ship)
 User.hasMany(Expense, {
