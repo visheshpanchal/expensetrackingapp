@@ -17,8 +17,8 @@ const Login = () => {
       .post(`${baseURL}user/login`, { email, password })
       .then((res) => {
         if (res.data.status === "success") {
+          localStorage.setItem("token", res.headers.token);
           alert("Login Successfully Done");
-          console.log(res.headers.token);
         } else {
           alert(res.data.message);
         }
