@@ -27,7 +27,7 @@ for (const route of routes) {
 sequelize // { alter: true }
   .sync()
   .then((res) => {
-    app.listen(3000, () => {
+    app.listen(5000, () => {
       console.log("Listening From 3000 Port");
     });
   })
