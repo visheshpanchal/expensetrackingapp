@@ -51,7 +51,7 @@ exports.loginUser = async (req, res, next) => {
   let body = req.body;
   let plainPassword = body.password;
   // Validation Not Completed Yet
-  console.log(body);
+
   if (body) {
     try {
       let _Object = await User.findOne({
@@ -89,6 +89,29 @@ exports.loginUser = async (req, res, next) => {
       console.log(err);
     }
   } else {
+    console.log(err);
+  }
+};
+
+exports.isAuthenticatedUser = async (req, res, next) => {
+  let token = req.headers.token;
+
+  if (token) {
+    let decryptedToken = jwt.decode(JSON.parse(token), SECRET_KEY);
+
+    try {
+      let user = await User.findOne({ id: decryptedToken.id });
+
+      if (user) {
+        res.status(200).json({ status: "success", data: { isAuthenticated: true, user: user } });
+      } else {
+        res.status(200).json({ status: "success", data: { isAuthenticated: false } });
+      }
+    } catch (err) {
+      res.status(500).json({ status: "error", message: "Server Error" });
+    }
+  } else {
+    res.status(200).json({ status: "success", data: { isAuthenticated: false } });
   }
 };
 
@@ -97,7 +120,7 @@ exports.goPremium = async (req, res, next) => {
 
   if (token) {
     let decryptedToken = jwt.decode(JSON.parse(token), SECRET_KEY);
-    console.log(decryptedToken);
+
     try {
       let response = await razorpay.orders.create({
         // prettier-ignore

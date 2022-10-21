@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { baseURL } from "../Config/basic";
 import axios from "../Config/axios";
 import { Link } from "react-router-dom";
+import FormField from "../components/FormField";
 
 const Login = () => {
   const emailRef = useRef();
@@ -37,12 +38,10 @@ const Login = () => {
           <h2 className="mb-2">Login Page</h2>
           <form method="post" onSubmit={submitHandler}>
             <div className="mb-3">
-              <label className="form-label">Email</label>
-              <input type="text" className="form-control" ref={emailRef} />
+              <FormField typeName={"text"} ref={emailRef} label={"Email"} />
             </div>
             <div className="mb-3">
-              <label className="form-label">Password</label>
-              <input type="password" className="form-control" ref={passwordRef} />
+              <FormField typeName={"password"} ref={passwordRef} label="Password" />
             </div>
             <div className="mb-3">
               <button className="btn btn-primary" type="submit">
@@ -50,7 +49,7 @@ const Login = () => {
               </button>
             </div>
             <div className="mb-3">
-              <Link to="/signup" className="btn btn-dark">
+              <Link to="/" className="btn btn-dark">
                 Signup Page
               </Link>
             </div>
