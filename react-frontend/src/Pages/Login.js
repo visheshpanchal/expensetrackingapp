@@ -1,14 +1,15 @@
 import React, { useRef } from "react";
 import { baseURL } from "../Config/basic";
 import axios from "../Config/axios";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import FormField from "../components/FormField";
-
+import { authAction } from "../store/auth";
+import { useDispatch } from "react-redux";
 const Login = () => {
   const emailRef = useRef();
-
+  const history = useHistory();
   const passwordRef = useRef();
-
+  const dispatch = useDispatch();
   const submitHandler = (e) => {
     e.preventDefault();
     const email = emailRef.current.value;
@@ -19,7 +20,9 @@ const Login = () => {
       .then((res) => {
         if (res.data.status === "success") {
           localStorage.setItem("token", res.headers.token);
+          dispatch(authAction.login());
           alert("Login Successfully Done");
+          history.push("/expense");
         } else {
           alert(res.data.message);
         }

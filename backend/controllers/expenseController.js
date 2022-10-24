@@ -1,25 +1,30 @@
 const sequelize = require("../utils/database");
-
+const { Op } = require("../utils/database");
 const Expense = sequelize.models.expense;
 const Category = sequelize.models.category;
 const Order = sequelize.models.order;
 const jwt = require("jsonwebtoken");
 
-const SECRET_KEY = process.env.SECRETE_KEY;
+const SECRET_KEY = process.env.SECRET_KEY || "secret";
 
 async function checkPremiumUser(req) {
   let token = req.headers.token;
   let isPremium = 0;
   if (token) {
-    let decryptedToken = jwt.decode(JSON.parse(token), SECRET_KEY);
-    try {
-      let res = await Order.count({ where: { userId: decryptedToken.userId } });
-      if (res > 0) {
-        isPremium = 1;
+    jwt.verify(token, SECRET_KEY, async function (err, d) {
+      if (err) {
+        console.log(err);
       }
-    } catch (err) {
-      console.log(err);
-    }
+
+      try {
+        let res = await Order.count({ where: { userId: d.userId } });
+        if (res > 0) {
+          isPremium = 1;
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    });
   }
 
   return isPremium;
@@ -28,47 +33,53 @@ async function checkPremiumUser(req) {
 exports.getExpenses = async (req, res, next) => {
   let token = req.headers.token;
   let page = req.query.page;
-  console.log(req.query.limit);
+  let index = req.query.index ? req.query.index : 0;
+
   let limit = req.query.limit ? Number(req.query.limit) : 10;
   if (token) {
-    let decryptedToken = jwt.decode(JSON.parse(token), SECRET_KEY);
-    if (page) {
-      let count = await Expense.count({
-        where: { userId: decryptedToken.userId },
-      });
+    jwt.verify(token, SECRET_KEY, async function (err, decryptedToken) {
+      if (err) {
+        console.log(err);
+      }
 
-      let data = await Expense.findAll({
-        offset: (page - 1) * limit,
-        limit: limit,
-        where: { userId: decryptedToken.userId },
-        include: {
-          model: Category,
-        },
-      });
-
-      res.status(200).json({
-        status: "success",
-        data: data,
-        totalItems: count,
-        premium: await checkPremiumUser(req),
-      });
-    } else {
-      try {
-        let data = await Expense.findAll({
+      if (page) {
+        let count = await Expense.count({
           where: { userId: decryptedToken.userId },
+        });
+
+        let data = await Expense.findAll({
+          offset: (page - 1) * limit,
+          limit: limit,
+          where: { userId: decryptedToken.userId, [Op.gt]: index },
           include: {
             model: Category,
           },
         });
-        res.json({
+
+        res.status(200).json({
           status: "success",
           data: data,
-          premium: await checkPremiumUser(req),
+          totalItems: count,
+          premium: checkPremiumUser(req),
         });
-      } catch (err) {
-        console.log(err);
+      } else {
+        try {
+          let data = await Expense.findAll({
+            where: { userId: decryptedToken.userId },
+            include: {
+              model: Category,
+            },
+          });
+          res.json({
+            status: "success",
+            data: data,
+            premium: await checkPremiumUser(req),
+          });
+        } catch (err) {
+          console.log(err);
+        }
       }
-    }
+    });
   } else {
     res.status(404).json({ status: "error", message: "User Not Found" });
   }
@@ -84,10 +95,7 @@ exports.getExpensesByMonth = async (req, res, next) => {
       let data = await Expense.findAll({
         where: {
           userId: decryptedToken.userId,
-          createdAt: sequelize.where(
-            sequelize.fn("month", sequelize.col("createdAt")),
-            month
-          ),
+          createdAt: sequelize.where(sequelize.fn("month", sequelize.col("createdAt")), month),
         },
         include: {
           model: Category,
@@ -104,32 +112,49 @@ exports.getExpensesByMonth = async (req, res, next) => {
 };
 
 exports.getSingleExpense = async (req, res, next) => {
-  let id = req.params.id;
-  try {
-    let data = await Expense.findAll({
-      where: {
-        _id: id,
-      },
+  const token = req.headers.token;
+  if (token) {
+    jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
+      if (err) {
+        res.status(200).json({ status: "error", message: "USer is not authenticated" });
+      }
+
+      let id = req.params.id;
+      try {
+        let data = await Expense.findAll({
+          where: {
+            _id: id,
+          },
+        });
+        res.status(200).json({ status: "success", data: data, premium: checkPremiumUser(req) });
+      } catch (err) {
+        res.status(404).json({ status: "error", message: "Item not found." });
+      }
     });
-    res.status(200).json({ data: data, premium: await checkPremiumUser(req) });
-  } catch (err) {}
+  } else {
+    res.status(200).json({ status: "error", message: "USer is not authenticated" });
+  }
 };
 
 exports.postExpenses = async (req, res, next) => {
   let token = req.headers.token;
-
+  console.log(SECRET_KEY);
   if (token) {
     try {
-      let decryptedToken = jwt.decode(JSON.parse(token), SECRET_KEY);
-      let body = req.body;
-      let categoryId = body.category;
-      let cat;
-      let data = await Expense.create({
-        ...body,
-        categoryId: categoryId,
-        userId: decryptedToken.userId,
+      jwt.verify(token, SECRET_KEY, async function (err, decryptedToken) {
+        if (err) {
+          console.log("Error JWT ", err);
+        }
+        let body = req.body;
+        let categoryId = body.category;
+
+        let data = await Expense.create({
+          ...body,
+          categoryId: categoryId,
+          userId: decryptedToken.userId,
+        });
+        res.status(201).json(data._id);
       });
-      res.status(201).json(data._id);
     } catch (err) {
       console.log(err);
     }
@@ -139,34 +164,68 @@ exports.postExpenses = async (req, res, next) => {
 };
 
 exports.updateExpense = async (req, res, next) => {
-  try {
-    let body = req.body;
-    let categoryId = body.category;
-    let id = req.params.id;
-    console.log(body);
-    let data = await Expense.update(
-      { ...body, categoryId: categoryId },
-      {
-        where: {
-          _id: id,
-        },
+  const token = req.headers.token;
+  if (token) {
+    jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
+      if (err) {
+        res.status(200).json({ status: "error", message: "USer is not authenticated" });
       }
-    );
+      try {
+        let body = req.body;
+        let categoryId = body.category;
+        let id = req.params.id;
+        console.log(body);
+        let data = await Expense.update(
+          { ...body, categoryId: categoryId },
+          {
+            where: {
+              _id: id,
+            },
+          }
+        );
 
-    res.status(201).json({ Update: "Done" });
-  } catch (err) {
-    console.log(err);
+        res.status(201).json({ Update: "Done" });
+      } catch (err) {
+        console.log(err);
+      }
+    });
+  } else {
+    res.status(200).json({ status: "error", message: "USer is not authenticated" });
   }
 };
 
 exports.deleteExpense = async (req, res, next) => {
-  try {
-    let id = req.params.id;
+  const token = req.headers.token;
+  if (token) {
+    jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
+      if (err) {
+        res.status(200).json({ status: "error", message: "USer is not authenticated" });
+      }
 
-    let data = await Expense.destroy({ where: { _id: id } });
+      try {
+        let id = req.params.id;
 
-    res.status(200).json({});
-  } catch (err) {
-    console.log(err);
+        let data = await Expense.destroy({ where: { _id: id } });
+
+        res.status(200).json({ status: "success", data: { id } });
+      } catch (err) {
+        console.log(err);
+      }
+    });
+  } else {
+    res.status(200).json({ status: "error", message: "USer is not authenticated" });
   }
 };
+
+// const token = req.headers.token;
+// if (token)
+// {
+//   jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
+//     if (err) {
+//       res.status(200).json({ status: "error", message: "USer is not authenticated" });
+//     }
+//   });
+//   }
+//  else {
+//    res.status(200).json({ status: "error", message: "USer is not authenticated" });
+// }
