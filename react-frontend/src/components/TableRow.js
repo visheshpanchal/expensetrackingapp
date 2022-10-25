@@ -1,14 +1,20 @@
+import { useDispatch } from "react-redux";
 import axios from "../Config/axios";
 import { baseURL } from "../Config/basic";
+import { expenseAction } from "../store/expense";
 
 const TableRow = (props) => {
+  const dispatch = useDispatch();
   const onDeleteHandler = () => {
-    axios.delete(`${baseURL}expense/${props._id}`).then((res) => {
-      console.log(props.onChange, "-----------");
-      props.onChange((prevState) => {
-        return [res.data.status];
+    axios
+      .delete(`${baseURL}expense/${props._id}`)
+      .then((res) => {
+        console.log(props.onChange, "-----On Delete------");
+        dispatch(expenseAction.delete(props._id));
+      })
+      .catch((err) => {
+        console.log(err);
       });
-    });
   };
   const onEdit = () => {
     props.onEditById(props._id);

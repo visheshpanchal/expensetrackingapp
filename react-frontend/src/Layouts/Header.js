@@ -29,7 +29,11 @@ const Header = () => {
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
             <li className="nav-item">
               {isAuth && (
-                <Link to="/" className="nav-link text-light fs-4" onClick={logoutHandler}>
+                <Link
+                  to="/"
+                  className="nav-link text-light fs-4"
+                  onClick={logoutHandler}
+                >
                   Logout
                 </Link>
               )}

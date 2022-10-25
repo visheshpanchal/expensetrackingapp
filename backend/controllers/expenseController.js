@@ -1,5 +1,5 @@
 const sequelize = require("../utils/database");
-const { Op } = require("../utils/database");
+const { Op } = require("sequelize");
 const Expense = sequelize.models.expense;
 const Category = sequelize.models.category;
 const Order = sequelize.models.order;
@@ -33,7 +33,8 @@ async function checkPremiumUser(req) {
 exports.getExpenses = async (req, res, next) => {
   let token = req.headers.token;
   let page = req.query.page;
-  let index = req.query.index ? req.query.index : 0;
+  let index = req.query.lastIndex ? req.query.lastIndex : 0;
+  console.log("-------------------------------------", index);
 
   let limit = req.query.limit ? Number(req.query.limit) : 10;
   if (token) {
@@ -44,13 +45,13 @@ exports.getExpenses = async (req, res, next) => {
 
       if (page) {
         let count = await Expense.count({
-          where: { userId: decryptedToken.userId },
+          where: { userId: decryptedToken.userId, [Op.gt]: index },
         });
 
         let data = await Expense.findAll({
           offset: (page - 1) * limit,
           limit: limit,
-          where: { userId: decryptedToken.userId, [Op.gt]: index },
+          where: { userId: decryptedToken.userId, _id: { [Op.gt]: index } },
           include: {
             model: Category,
           },
@@ -65,7 +66,13 @@ exports.getExpenses = async (req, res, next) => {
       } else {
         try {
           let data = await Expense.findAll({
-            where: { userId: decryptedToken.userId },
+            where: {
+              userId: decryptedToken.userId,
+
+              _id: {
+                [Op.gt]: [index],
+              },
+            },
             include: {
               model: Category,
             },
@@ -73,7 +80,7 @@ exports.getExpenses = async (req, res, next) => {
           res.json({
             status: "success",
             data: data,
-            premium: await checkPremiumUser(req),
+            premium: checkPremiumUser(req),
           });
         } catch (err) {
           console.log(err);
@@ -95,7 +102,10 @@ exports.getExpensesByMonth = async (req, res, next) => {
       let data = await Expense.findAll({
         where: {
           userId: decryptedToken.userId,
-          createdAt: sequelize.where(sequelize.fn("month", sequelize.col("createdAt")), month),
+          createdAt: sequelize.where(
+            sequelize.fn("month", sequelize.col("createdAt")),
+            month
+          ),
         },
         include: {
           model: Category,
@@ -116,7 +126,9 @@ exports.getSingleExpense = async (req, res, next) => {
   if (token) {
     jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
       if (err) {
-        res.status(200).json({ status: "error", message: "USer is not authenticated" });
+        res
+          .status(200)
+          .json({ status: "error", message: "USer is not authenticated" });
       }
 
       let id = req.params.id;
@@ -126,13 +138,19 @@ exports.getSingleExpense = async (req, res, next) => {
             _id: id,
           },
         });
-        res.status(200).json({ status: "success", data: data, premium: checkPremiumUser(req) });
+        res.status(200).json({
+          status: "success",
+          data: data,
+          premium: checkPremiumUser(req),
+        });
       } catch (err) {
         res.status(404).json({ status: "error", message: "Item not found." });
       }
     });
   } else {
-    res.status(200).json({ status: "error", message: "USer is not authenticated" });
+    res
+      .status(200)
+      .json({ status: "error", message: "USer is not authenticated" });
   }
 };
 
@@ -168,7 +186,9 @@ exports.updateExpense = async (req, res, next) => {
   if (token) {
     jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
       if (err) {
-        res.status(200).json({ status: "error", message: "USer is not authenticated" });
+        res
+          .status(200)
+          .json({ status: "error", message: "USer is not authenticated" });
       }
       try {
         let body = req.body;
@@ -190,7 +210,9 @@ exports.updateExpense = async (req, res, next) => {
       }
     });
   } else {
-    res.status(200).json({ status: "error", message: "USer is not authenticated" });
+    res
+      .status(200)
+      .json({ status: "error", message: "USer is not authenticated" });
   }
 };
 
@@ -199,7 +221,9 @@ exports.deleteExpense = async (req, res, next) => {
   if (token) {
     jwt.verify(token, SECRET_KEY, async (err, decryptToken) => {
       if (err) {
-        res.status(200).json({ status: "error", message: "USer is not authenticated" });
+        res
+          .status(200)
+          .json({ status: "error", message: "USer is not authenticated" });
       }
 
       try {
@@ -213,7 +237,9 @@ exports.deleteExpense = async (req, res, next) => {
       }
     });
   } else {
-    res.status(200).json({ status: "error", message: "USer is not authenticated" });
+    res
+      .status(200)
+      .json({ status: "error", message: "USer is not authenticated" });
   }
 };
 

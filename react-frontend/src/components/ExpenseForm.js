@@ -2,9 +2,13 @@ import FormField from "./FormField";
 import axios from "../Config/axios";
 import { baseURL } from "../Config/basic";
 import { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { expenseAction } from "../store/expense";
 const ExpenseForm = (props) => {
+  // dispatch
+
+  const dispatch = useDispatch();
+
   // Ref Hook
   const amountRef = useRef();
   const descriptionRef = useRef();
@@ -14,6 +18,7 @@ const ExpenseForm = (props) => {
   let [category, setCategory] = useState("");
   const { isEdit, onEdit } = props;
   useEffect(() => {
+    console.log("In Category ---------- ");
     axios.get(`${baseURL}category`).then((res) => {
       const categoryList = res.data;
 
@@ -29,17 +34,28 @@ const ExpenseForm = (props) => {
       });
     });
   }, []);
+  const reset = () => {
+    amountRef.current.value = "";
+    descriptionRef.current.value = "";
+    categoryRef.current.value = 0;
+  };
 
   const expenseHandler = async (e) => {
     e.preventDefault();
+
     if (isEdit === "") {
       try {
         let option = categoryRef.current.selectedOptions[0].value;
-        let res = await axios.post(`${baseURL}expense`, { amount: amountRef.current.value, description: descriptionRef.current.value, category: option });
+
+        let res = await axios.post(`${baseURL}expense`, {
+          amount: amountRef.current.value,
+          description: descriptionRef.current.value,
+          category: option,
+        });
 
         if (res.status === 201) {
           alert("Response added");
-
+          reset();
           props.onChange((prevState) => {
             return [res.data._id];
           });
@@ -48,36 +64,48 @@ const ExpenseForm = (props) => {
         console.log(err);
       }
     } else {
+      // Update Data
       try {
-        let option = categoryRef.current.selectedOptions[0].value;
-        let res = await axios.put(`${baseURL}expense/${isEdit}`, { amount: amountRef.current.value, description: descriptionRef.current.value, category: option });
+        let option = categoryRef.current.selectedIndex;
+        let value = categoryRef.current.options[option].value;
+        console.log(option, "-------");
+        let res = await axios.put(`${baseURL}expense/${isEdit}`, {
+          amount: amountRef.current.value,
+          description: descriptionRef.current.value,
+          category: value,
+        });
 
         if (res.status === 201) {
           alert("Response Updated");
-          props.onEdit("");
-          props.onChange((prevState) => {
-            return [isEdit];
-          });
+
+          dispatch(
+            expenseAction.update({
+              _id: isEdit,
+              amount: amountRef.current.value,
+              description: descriptionRef.current.value,
+              category: {
+                category: categoryRef.current.options[option].innerText,
+              },
+            })
+          );
+          reset();
         }
       } catch (err) {
         console.log(err);
       }
     }
-    amountRef.current.value = "";
-    descriptionRef.current.value = "";
-    categoryRef.current.value = 0;
   };
   const items = useSelector((state) => state.expense.items);
   if (isEdit !== "") {
     const index = items.findIndex((item) => {
       console.log(item, "---- In Update Check Function ---");
-      return item.e._id === isEdit;
+      return item._id === isEdit;
     });
     console.log(isEdit, index);
     const item = items[index];
-    amountRef.current.value = item.e.amount;
-    descriptionRef.current.value = item.e.description;
-    categoryRef.current.value = item.e.categoryId;
+    amountRef.current.value = item.amount;
+    descriptionRef.current.value = item.description;
+    categoryRef.current.value = item.categoryId;
   }
 
   return (
@@ -88,10 +116,19 @@ const ExpenseForm = (props) => {
             <FormField label={"Amount"} typeName={"Number"} ref={amountRef} />
           </div>
           <div className="p-2">
-            <FormField label={"Description"} typeName={"text"} ref={descriptionRef} />
+            <FormField
+              label={"Description"}
+              typeName={"text"}
+              ref={descriptionRef}
+            />
           </div>
           <div className="p-2">
-            <select placeholder="Choose" className="d-inline form-select" ref={categoryRef} required>
+            <select
+              placeholder="Choose"
+              className="d-inline form-select"
+              ref={categoryRef}
+              required
+            >
               {category}
             </select>
           </div>

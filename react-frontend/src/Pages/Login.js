@@ -44,7 +44,11 @@ const Login = () => {
               <FormField typeName={"text"} ref={emailRef} label={"Email"} />
             </div>
             <div className="mb-3">
-              <FormField typeName={"password"} ref={passwordRef} label="Password" />
+              <FormField
+                typeName={"password"}
+                ref={passwordRef}
+                label="Password"
+              />
             </div>
             <div className="mb-3">
               <button className="btn btn-primary" type="submit">

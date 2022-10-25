@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ExpenseForm from "../components/ExpenseForm";
 import ExpenseData from "../components/ExpenseData";
+import { useSelector } from "react-redux";
 
 const ExpensePage = () => {
   const [onChange, setOnChange] = useState("");
@@ -9,7 +10,11 @@ const ExpensePage = () => {
   return (
     <React.Fragment>
       <ExpenseForm onChange={setOnChange} isEdit={onEdit} onEdit={setOnEdit} />
-      <ExpenseData onChange={onChange} setOnChange={setOnChange} onEdit={setOnEdit} />
+      <ExpenseData
+        onChange={onChange}
+        setOnChange={setOnChange}
+        onEdit={setOnEdit}
+      />
     </React.Fragment>
   );
 };
